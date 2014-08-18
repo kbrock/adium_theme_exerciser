@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<head>
+  <title>Chat window</title>
+  <script type="text/javascript" src="zepto.js"></script>
+<script type="text/javascript">
+// Simple JavaScript Templating
+// John Resig - http://ejohn.org/ - MIT Licensed
+(function(){
+  var cache = {};
+ 
+  this.tmpl = function tmpl(str, data){
+    // Figure out if we're getting a template, or if we need to
+    // load the template - and be sure to cache the result.
+    var fn = !/\W/.test(str) ?
+      cache[str] = cache[str] ||
+        tmpl(document.getElementById(str).innerHTML) :
+     
+      // Generate a reusable function that will serve as a template
+      // generator (and which will be cached).
+      new Function("obj",
+        "var p=[],print=function(){p.push.apply(p,arguments);};" +
+       
+        // Introduce the data as local variables using with(){}
+        "with(obj){p.push('" +
+       
+        // Convert the template into pure JavaScript
+        str
+          .replace(/[\r\t\n]/g, " ")
+          .split("<%").join("\t")
+          .replace(/((^|%>)[^\t]*)'/g, "$1\r")
+          .replace(/\t=(.*?)%>/g, "',$1,'")
+          .split("\t").join("');")
+          .split("%>").join("p.push('")
+          .split("\r").join("\\'")
+      + "');}return p.join('');");
+   
+    // Provide some basic currying to the user
+    return data ? fn( data ) : fn;
+  };
+})();
+</script>
+
+<script type="text/javascript">
+function fromChild() {
+  alert('called')
+}
+function sendChild(method, data) {
+  if (typeof (window.frames["messages"][method]) == "function")
+    window.frames["messages"][method](data);
+  else
+    alert("messages."+method+" NOT found");
+}
+function appendMessage(data) {
+  if (typeof (window.frames[1].appendMessage) == "function")
+    window.frames[1].appendMessage(data);
+  else
+    alert("messages.appendMessage NOT found");  
+}
+
+var templates = {};
+
+  function formItem(arr, name) {
+    for(var i=0, len=arr.length; i < len; i++) {
+      if(arr[i]["name"] == name) {
+        return arr[i]["value"];
+      }
+    }
+    return null;
+  }
+  function arrayToHash(arr) {
+    var ret = {}
+    for(var i=0, len=arr.length; i < len; i++) {
+      var element = arr[i];
+      ret[element["name"]] = element["value"];
+    }
+    return ret;
+  }
+
+//$(document).ready(function() {
+$(function() {
+templates["content_tmpl"] = tmpl("content_tmpl");
+
+  $('form').submit(function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    var data = arrayToHash($(this).serializeArray());
+    //var date = Time.new();
+    data["date"] = "2004-04-19 12:46:32 -0500";
+    data["time"] = "12:46:32";
+    // date_separator
+    var messageClasses = "history " +
+      (data["consecutive"] ? " consecutive" : "") +
+      (data["sender"] == "me" ? " outgoing" : " incoming") + //(data["to"] == "me" ? " incoming" : " event")) +
+      (data["auto_reply"] == "true" ? " auto_reply" : "") +
+      " " + (data["type"] || "message");
+    data["messageClasses"] = messageClasses;
+    data["senderColor"] = data["sender"] == "me" ? "#2aa198" : "#859900";
+
+    appendMessage(templates["content_tmpl"](data));
+    return false; //this will call preventDefault / topPropogation
+  });
+});
+
+</script>
+
+<style>
+#contactList {
+  height: 400px;
+  width: 200px;
+  border: 1px solid #666;
+}
+#messages {
+  height: 400px;
+  width: 400px;
+  border: 1px solid #666;
+}
+</style>
+</head>
+
+<body>
+  <iframe id="contactList" src="./contactList.html"></iframe>
+  <iframe height="100" id="messages" src="./messages.html"></iframe>
+    <form id="form" >
+      <label title="Auto Reply"> <input type="checkbox" name="auto_reply" value="true">Auto</label>
+      <label title="Consecutive"><input type="checkbox" name="consecutive" value="true">Consecutive</label>
+      <label>From                <input type="text"     name="sender" value="me"></label>
+      <label>To                  <input type="text"     name="to" value="tj"></label>
+      <br>
+      <label>Message             <input type="text"     name="message" value="something important"></label>
+                                 <input type="submit"   name="type" value="Message">
+                                 <input type="submit"   name="type" value="Away">
+      <br>
+                                 <input type="button" onclick="sendAll()" value="Send All">
+    </form>
+
+
+<!-- template borrowed from https://github.com/ezanol/Adium-Solarized -->
+
+<script type="text/html" id="content_tmpl">
+<div class="<%=messageClasses%>">
+    <span class="time"><%= time %></span>
+    <span class="sender" style="color:<%= senderColor %>;border-color: <%= senderColor%>"><%=sender%></span>
+    <span class="themessage"><%=message%></span>
+</div>
+<div id="insert"></div>
+</script>
+
+</body>
+</html>
