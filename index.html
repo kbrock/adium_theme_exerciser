@@ -38,28 +38,31 @@ function appendMessage(data) {
     return ret;
   }
 
-//$(document).ready(function() {
+var last_sender = '';
+var last_type = '';
+
 $(function() {
-templates["content_tmpl"] = tmpl("content_tmpl");
 
   $('form').submit(function(event) {
     event.preventDefault();
     event.stopPropagation();
 
+    // list of atributes: https://trac.adium.im/wiki/MessageStyleKeywords
     var data = arrayToHash($(this).serializeArray());
     //var date = Time.new();
     data["date"] = "2004-04-19 12:46:32 -0500";
     data["time"] = "12:46:32";
-    // date_separator
-    var messageClasses = "history " +
-      (data["consecutive"] ? " consecutive" : "") +
-      (data["sender"] == "me" ? " outgoing" : " incoming") + //(data["to"] == "me" ? " incoming" : " event")) +
-      (data["auto_reply"] == "true" ? " auto_reply" : "") +
-      " " + (data["type"] || "message");
-    data["messageClasses"] = messageClasses;
     data["senderColor"] = data["sender"] == "me" ? "#2aa198" : "#859900";
 
-    appendMessage(templates["content_tmpl"](data));
+    if (last_sender == data["sender"] && last_type == data["tmpl"]) {
+      console.debug("consecutive", data["messageClasses"])
+      data["messageClasses"] = data["messageClasses"] + " consecutive";
+    }
+
+    appendMessage(tmpl(data["tmpl"], data));
+
+    last_sender = data["sender"];
+    last_type = data["tmpl"];
     return false; //this will call preventDefault / topPropogation
   });
 });
@@ -74,28 +77,47 @@ templates["content_tmpl"] = tmpl("content_tmpl");
 }
 #messages {
   height: 400px;
-  width: 400px;
+  width: 100%;
   border: 1px solid #666;
 }
 </style>
 </head>
 
 <body>
+  <!--
   <iframe id="contactList" src="./contactList.html"></iframe>
+  -->
   <iframe height="100" id="messages" src="./messages.html"></iframe>
-    <form id="form" >
-      <label title="Auto Reply"> <input type="checkbox" name="auto_reply" value="true">Auto</label>
-      <label title="Consecutive"><input type="checkbox" name="consecutive" value="true">Consecutive</label>
-      <label>From                <input type="text"     name="sender" value="me"></label>
-      <label>To                  <input type="text"     name="to" value="tj"></label>
-      <br>
-      <label>Message             <input type="text"     name="message" value="something important"></label>
-                                 <input type="submit"   name="type" value="Message">
-                                 <input type="submit"   name="type" value="Away">
-      <br>
-                                 <input type="button" onclick="sendAll()" value="Send All">
-    </form>
-
+  <form>
+    <input type="hidden" name="tmpl" value="content_tmpl">
+    <!-- not sure to include history, mention, focus, firstFocus -->
+    <input type="hidden" name="messageClasses" value="outgoing message">
+    <input type="hidden" name="sender" value="me">
+    <!-- do this as a select / radio box -->
+    From: me
+    <label>To: <input type="text" name="to" value="tj"></label>
+    <label>Message: <input type="text" name="message" value="something to say"></label>
+    <input type="submit" value="From Me">
+  </form>
+  <form>
+    <input type="hidden" name="tmpl" value="content_tmpl">
+    <!-- not sure to include history, mention, focus, firstFocus -->
+    <input type="hidden" name="messageClasses" value="incoming message">
+    <input type="hidden" name="to" value="me">
+    <!-- do this as a select / radio box -->
+    <label>From: <input type="text" name="sender" value="tj"></label>
+    To: me
+    <label>Message: <input type="text" name="message" value="something to say"></label>
+    <input type="submit" value="To Me">
+  </form>
+Status
+  <form>
+    <input type="hidden" name="tmpl" value="status_tmpl">
+    <!-- what about away_message -->
+    <input type="hidden" name="messageClasses" value="status away">
+    <label>Message: <input type="text" name="message" value="something to say"></label>
+    <input type="submit" value="status">
+  </form>
 
 <!-- template borrowed from https://github.com/ezanol/Adium-Solarized -->
 
@@ -107,6 +129,14 @@ templates["content_tmpl"] = tmpl("content_tmpl");
 </div>
 <div id="insert"></div>
 </script>
+<script type="text/html" id="status_tmpl">
+<div class="<%=messageClasses%>">
+    <span class="time"><%=time%></span>
+    <span class="themessage"><%=message%></span>
+</div>
+<div id="insert"></div>
+</script>
+
 
 </body>
 </html>
